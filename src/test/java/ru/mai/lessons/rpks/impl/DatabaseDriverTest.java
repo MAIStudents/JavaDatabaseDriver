@@ -44,8 +44,65 @@ public class DatabaseDriverTest {
   }
 
   @Test(dataProvider = "selectFromCases",
-        description = "Проверяем успешное выполнение простых запроса SELECT+FROM")
+        description = "Проверяем успешное выполнение простых запросов SELECT+FROM")
   public void testPositiveFindDataBySimpleSelectFrom(String command, List<String> expectedResult)
+      throws FieldNotFoundInTableException {
+    // WHEN
+    List<String> actualResult = databaseDriver.find(STUDENTS_FILENAME, GROUPS_FILENAME,
+                                                    SUBJECTS_FILENAME, GRADE_FILENAME, command);
+
+    // THEN
+    assertEquals(actualResult, expectedResult);
+  }
+
+  @DataProvider(name = "selectFromWhereCases")
+  private Object[][] getSelectFromWhereCase() {
+    return new Object[][] {
+        {
+            String.format(
+                "SELECT=group_name,grade,date FROM=%s,%s,%s,%s WHERE=(full_name='%s' AND subject_name='%s')",
+                STUDENTS_FILENAME, GROUPS_FILENAME, SUBJECTS_FILENAME, GRADE_FILENAME,
+                "Иванов Иван", "Английский"),
+            List.of("5ИНТ-001;5;17.01.2023")
+        },
+        {
+            String.format(
+                "SELECT=full_name,group_name,grade,date FROM=%s,%s,%s,%s WHERE=(subject_name='%s')",
+                STUDENTS_FILENAME, GROUPS_FILENAME, SUBJECTS_FILENAME, GRADE_FILENAME, "РПКС"),
+            List.of("Иванов Иван;5ИНТ-001;5;05.01.2023", "Петров Олег;5ИНТ-001;4;05.01.2023",
+                    "Игнатова Ольга;5ИНТ-002;4;06.01.2023", "Сидоров Николай;5ПМИ-001;5;07.01.2023",
+                    "Калинина Дарья;5ПМИ-001;3;07.01.2023", "Кузнецов Михаил;5ИНТ-001;5;05.01.2023",
+                    "Орлов Виктор;5ПМИ-001;4;07.01.2023", "Никитина Ирина;5ИНТ-002;3;06.01.2023")
+        },
+        {
+            String.format(
+                "SELECT=full_name,subject_name FROM=%s,%s,%s WHERE=(grade='3' OR grade='4' OR grade='2')",
+                STUDENTS_FILENAME, SUBJECTS_FILENAME, GRADE_FILENAME),
+            List.of("Иванов Иван;Матан", "Петров Олег;РПКС", "Петров Олег;Матан",
+                    "Петров Олег;История", "Игнатова Ольга;РПКС", "Калинина Дарья;РПКС",
+                    "Калинина Дарья;Матан", "Калинина Дарья;История", "Калинина Дарья;Английский",
+                    "Кузнецов Михаил;Матан", "Кузнецов Михаил;История",
+                    "Кузнецов Михаил;Английский", "Орлов Виктор;РПКС", "Орлов Виктор;Матан",
+                    "Орлов Виктор;История", "Орлов Виктор;Английский", "Никитина Ирина;РПКС",
+                    "Никитина Ирина;Матан", "Никитина Ирина;Английский")
+        },
+        {
+            String.format(
+                "SELECT=group_name,full_name,subject_name FROM=%s,%s,%s,%s WHERE=(grade='2')",
+                STUDENTS_FILENAME, GROUPS_FILENAME, SUBJECTS_FILENAME, GRADE_FILENAME),
+            List.of("5ИНТ-002;Никитина Ирина;Английский")
+        },
+        {
+            String.format("SELECT=full_name,subject_name FROM=%s,%s,%s WHERE=(grade='1')",
+                          STUDENTS_FILENAME, SUBJECTS_FILENAME, GRADE_FILENAME),
+            List.of("")
+        }
+    };
+  }
+
+  @Test(dataProvider = "selectFromWhereCases",
+        description = "Проверяем успешное выполнение запросов с условием SELECT+FROM+WHERE")
+  public void testPositiveFindDataBySelectFromWhere(String command, List<String> expectedResult)
       throws FieldNotFoundInTableException {
     // WHEN
     List<String> actualResult = databaseDriver.find(STUDENTS_FILENAME, GROUPS_FILENAME,
