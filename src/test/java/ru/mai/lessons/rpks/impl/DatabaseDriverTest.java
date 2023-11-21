@@ -112,6 +112,34 @@ public class DatabaseDriverTest {
     assertEquals(actualResult, expectedResult);
   }
 
+  @DataProvider(name = "selectFromWhereGroupByCases")
+  private Object[][] getSelectFromWhereGroupByCase() {
+    return new Object[][] {
+        {
+            String.format("SELECT=group_name FROM=%s GROUPBY=group_name", GROUPS_FILENAME),
+            List.of("5ИНТ-001", "5ИНТ-002", "5ПМИ-001")
+        },
+        {
+            String.format("SELECT=subject_name FROM=%s,%s WHERE=(grade='5') GROUPBY=subject_name",
+                          SUBJECTS_FILENAME, GRADE_FILENAME),
+            List.of("РПКС", "История", "Английский", "Матан")
+        }
+    };
+  }
+
+  @Test(dataProvider = "selectFromWhereGroupByCases",
+        description = "Проверяем успешное выполнение запросов с группировкой SELECT+FROM+WHERE+GROUPBY")
+  public void testPositiveFindDataBySelectFromWhereGroupBy(String command,
+                                                           List<String> expectedResult)
+      throws FieldNotFoundInTableException {
+    // WHEN
+    List<String> actualResult = databaseDriver.find(STUDENTS_FILENAME, GROUPS_FILENAME,
+                                                    SUBJECTS_FILENAME, GRADE_FILENAME, command);
+
+    // THEN
+    assertEquals(actualResult, expectedResult);
+  }
+
   @Test(expectedExceptions = FieldNotFoundInTableException.class,
         description = "Проверяем реакцию на попытку получить данные из поля, которого нет в таблице")
   public void testNegativeTryFindUnknownFieldInTable() throws FieldNotFoundInTableException {
