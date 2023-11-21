@@ -2,13 +2,15 @@ package ru.mai.lessons.rpks;
 
 import lombok.extern.slf4j.Slf4j;
 import ru.mai.lessons.rpks.exception.FieldNotFoundInTableException;
+import ru.mai.lessons.rpks.exception.WrongCommandFormatException;
 import ru.mai.lessons.rpks.impl.DatabaseDriver;
 
 import java.util.List;
 
 @Slf4j
 public class Main {
-  public static void main(String[] args) throws FieldNotFoundInTableException {
+  public static void main(String[] args)
+      throws FieldNotFoundInTableException, WrongCommandFormatException {
     log.info("Start service DatabaseDriver");
     IDatabaseDriver service = new DatabaseDriver(); // ваша реализация service
     String studentsCsvFile = args[0];

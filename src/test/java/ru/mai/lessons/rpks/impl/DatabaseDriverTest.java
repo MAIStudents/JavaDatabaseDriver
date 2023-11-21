@@ -5,6 +5,7 @@ import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 import ru.mai.lessons.rpks.IDatabaseDriver;
 import ru.mai.lessons.rpks.exception.FieldNotFoundInTableException;
+import ru.mai.lessons.rpks.exception.WrongCommandFormatException;
 
 import java.util.List;
 
@@ -46,7 +47,7 @@ public class DatabaseDriverTest {
   @Test(dataProvider = "selectFromCases",
         description = "Проверяем успешное выполнение простых запросов SELECT+FROM")
   public void testPositiveFindDataBySimpleSelectFrom(String command, List<String> expectedResult)
-      throws FieldNotFoundInTableException {
+      throws FieldNotFoundInTableException, WrongCommandFormatException {
     // WHEN
     List<String> actualResult = databaseDriver.find(STUDENTS_FILENAME, GROUPS_FILENAME,
                                                     SUBJECTS_FILENAME, GRADE_FILENAME, command);
@@ -103,7 +104,7 @@ public class DatabaseDriverTest {
   @Test(dataProvider = "selectFromWhereCases",
         description = "Проверяем успешное выполнение запросов с условием SELECT+FROM+WHERE")
   public void testPositiveFindDataBySelectFromWhere(String command, List<String> expectedResult)
-      throws FieldNotFoundInTableException {
+      throws FieldNotFoundInTableException, WrongCommandFormatException {
     // WHEN
     List<String> actualResult = databaseDriver.find(STUDENTS_FILENAME, GROUPS_FILENAME,
                                                     SUBJECTS_FILENAME, GRADE_FILENAME, command);
@@ -131,7 +132,7 @@ public class DatabaseDriverTest {
         description = "Проверяем успешное выполнение запросов с группировкой SELECT+FROM+WHERE+GROUPBY")
   public void testPositiveFindDataBySelectFromWhereGroupBy(String command,
                                                            List<String> expectedResult)
-      throws FieldNotFoundInTableException {
+      throws FieldNotFoundInTableException, WrongCommandFormatException {
     // WHEN
     List<String> actualResult = databaseDriver.find(STUDENTS_FILENAME, GROUPS_FILENAME,
                                                     SUBJECTS_FILENAME, GRADE_FILENAME, command);
@@ -142,13 +143,47 @@ public class DatabaseDriverTest {
 
   @Test(expectedExceptions = FieldNotFoundInTableException.class,
         description = "Проверяем реакцию на попытку получить данные из поля, которого нет в таблице")
-  public void testNegativeTryFindUnknownFieldInTable() throws FieldNotFoundInTableException {
+  public void testNegativeTryFindUnknownFieldInTable()
+      throws FieldNotFoundInTableException, WrongCommandFormatException {
     // GIVEN
     String command = "SELECT=group_name FROM=" + STUDENTS_FILENAME;
 
     // WHEN
-    List<String> actualResult = databaseDriver.find(STUDENTS_FILENAME, GROUPS_FILENAME,
-                                                    SUBJECTS_FILENAME, GRADE_FILENAME, command);
+    databaseDriver.find(STUDENTS_FILENAME, GROUPS_FILENAME, SUBJECTS_FILENAME, GRADE_FILENAME,
+                        command);
+    // THEN ожидаем получение исключения
+  }
+
+  @DataProvider(name = "wrongFormatCommandCases")
+  private Object[][] getWrongFormatCommandCase() {
+    return new Object[][] {
+        {"SELECT group_name FROM=" + STUDENTS_FILENAME},
+        {"SELECT=group_name FROM " + STUDENTS_FILENAME},
+        {"SELECT=group_name"},
+        {"FROM=" + STUDENTS_FILENAME},
+        {String.format("SELECT= FROM=%s GROUPBY=group_name", GROUPS_FILENAME)},
+        {"SELECT=group_name FROM= GROUPBY=group_name"},
+        {String.format("SELECT=group_name FROM=%s GROUPBY=", GROUPS_FILENAME)},
+        {String.format("SELECT=group_name FROM=%s GROUPBY group_name", GROUPS_FILENAME)},
+        {String.format("SELECT=full_name,subject_name FROM=%s,%s %s WHERE=(grade='5')",
+                       STUDENTS_FILENAME, SUBJECTS_FILENAME, GRADE_FILENAME)},
+        {String.format("SELECT=full_name,subject_name FROM=%s,%s,%s WHERE (grade='5')",
+                       STUDENTS_FILENAME, SUBJECTS_FILENAME, GRADE_FILENAME)},
+        {String.format("SELECT=full_name,subject_name FROM=%s,%s,%s WHERE=grade='5'",
+                       STUDENTS_FILENAME, SUBJECTS_FILENAME, GRADE_FILENAME)},
+        {String.format("SELECT=full_name,subject_name FROM=%s,%s,%s WHERE=(grade=='5')",
+                       STUDENTS_FILENAME, SUBJECTS_FILENAME, GRADE_FILENAME)}
+    };
+  }
+
+  @Test(dataProvider = "wrongFormatCommandCases",
+        expectedExceptions = WrongCommandFormatException.class,
+        description = "Проверяем валидацию формата команды")
+  public void testNegativeTryFindUnknownFieldInTable(String wrongFormatCommand)
+      throws FieldNotFoundInTableException, WrongCommandFormatException {
+    // WHEN
+    databaseDriver.find(STUDENTS_FILENAME, GROUPS_FILENAME, SUBJECTS_FILENAME, GRADE_FILENAME,
+                        wrongFormatCommand);
     // THEN ожидаем получение исключения
   }
 }
