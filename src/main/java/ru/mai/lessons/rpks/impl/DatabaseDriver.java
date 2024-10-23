@@ -20,6 +20,7 @@ public class DatabaseDriver implements IDatabaseDriver {
   SubjectTable subjects;
   GroupTable groups;
   List<String> keyWords = List.of(new String[]{"SELECT=", "FROM=", "WHERE=", "GROUPBY="});
+  Map<String, List<String>> cash = null;
 
   @Override
   public List<String> find(String studentsCsvFile, String groupsCsvFile, String subjectsCsvFile,
@@ -31,6 +32,11 @@ public class DatabaseDriver implements IDatabaseDriver {
       groups = new GroupTable(readGroupsCSV(PREFIX + groupsCsvFile));
     } catch (IOException e) {
       e.printStackTrace();
+    }
+    if (cash == null) {
+      cash = new HashMap<>();
+    } else if (cash.containsKey(command)) {
+      return cash.get(command);
     }
     Map<String, List<String>> whereList = new HashMap<>();
     StringBuilder groupBySb = new StringBuilder();
@@ -45,6 +51,7 @@ public class DatabaseDriver implements IDatabaseDriver {
     if (result.isEmpty()) {
       result = List.of("");
     }
+    cash.put(command, result);
     return result;
   }
   Table getTableByName(String tableName) {
