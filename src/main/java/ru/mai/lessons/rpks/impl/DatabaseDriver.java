@@ -16,7 +16,7 @@ public class DatabaseDriver implements IDatabaseDriver {
   private static String PREFIX = "src/test/resources/";
   @Override
   public List<String> find(String studentsCsvFile, String groupsCsvFile, String subjectsCsvFile,
-                           String gradeCsvFile, String command) {
+                           String gradeCsvFile, String command) throws WrongCommandFormatException, FieldNotFoundInTableException {
     if (studentsCsvFile == null || studentsCsvFile.isEmpty()) {
       throw new IllegalArgumentException("studentsCsvFile is empty");
     }
@@ -33,16 +33,14 @@ public class DatabaseDriver implements IDatabaseDriver {
       throw new IllegalArgumentException("command is empty");
     }
     try {
-//      command = "SELECT=full_name,subject_name FROM=%s,%s,%s WHERE=(grade='3' OR popa='4' OR grade='2')";
       DatabaseManager manager = new DatabaseManager(PREFIX + studentsCsvFile, PREFIX + groupsCsvFile, PREFIX + subjectsCsvFile, PREFIX + gradeCsvFile);
-      manager.getRequest(command);
+      return manager.getRequest(command);
 
     } catch (IOException | ParseException e) {
       e.printStackTrace();
-    } catch (WrongCommandFormatException | FieldNotFoundInTableException e) {
-        throw new RuntimeException(e);
+    } catch (FieldNotFoundInTableException | WrongCommandFormatException e) {
+      throw e;
     }
-
 
       return null; // реализовать проверку
   }
