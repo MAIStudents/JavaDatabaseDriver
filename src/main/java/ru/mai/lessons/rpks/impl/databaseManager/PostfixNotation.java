@@ -1,4 +1,4 @@
-package ru.mai.lessons.rpks.impl.DatabaseManager;
+package ru.mai.lessons.rpks.impl.databaseManager;
 
 import ru.mai.lessons.rpks.exception.WrongCommandFormatException;
 
@@ -6,7 +6,7 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class postfixNotation {
+public class PostfixNotation {
     private static final Map<String, Integer> precedence = new HashMap<>();
 
     static {
@@ -14,10 +14,10 @@ public class postfixNotation {
         precedence.put("AND", 2);
     }
 
-    public static Deque<String> convertToRPN(String expression, Deque<String> result) throws WrongCommandFormatException {
+    public static void convertToRPN(String expression, Deque<String> result) throws WrongCommandFormatException {
         Deque<String> operators = new ArrayDeque<>();
         if (expression == null || expression.isEmpty()) {
-            return result;
+            return;
         }
         List<String> tokens = parseConditions(expression);
 
@@ -39,7 +39,7 @@ public class postfixNotation {
                 }
                 operators.pop();
             } else {
-                while (!operators.isEmpty() && !isOperand(operators.peek())  && precedence.get(token) <= precedence.get(operators.peek())) {
+                while (!operators.isEmpty() && !isOperand(operators.peek()) && precedence.get(token) <= precedence.get(operators.peek())) {
                     result.push(operators.pop());
                 }
                 operators.push(token);
@@ -49,7 +49,6 @@ public class postfixNotation {
         while (!operators.isEmpty()) {
             result.push(operators.pop());
         }
-        return result;
     }
 
     private static boolean isOperand(String token) {
@@ -84,10 +83,6 @@ public class postfixNotation {
         if (!currentCondition.isEmpty()) {
             conditions.add(currentCondition.toString().trim());
         }
-
         return conditions;
     }
-
-
-
 }
