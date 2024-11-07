@@ -1,0 +1,103 @@
+SELECT=group_name,grade,date FROM=students.csv,groups.csv,subjects.csv,grade.csv WHERE=(full_name='Иванов Иван' AND subject_name='Английский')
+5ИНТ-001;5;17.01.2023
+
+SELECT=full_name,group_name,grade,date FROM=students.csv,groups.csv,subjects.csv,grade.csv WHERE=(subject_name='РПКС')
+Иванов Иван;5ИНТ-001;5;05.01.2023
+Петров Олег;5ИНТ-001;4;05.01.2023
+Игнатова Ольга;5ИНТ-002;4;06.01.2023
+Сидоров Николай;5ПМИ-001;5;07.01.2023
+Калинина Дарья;5ПМИ-001;3;07.01.2023
+Кузнецов Михаил;5ИНТ-001;5;05.01.2023
+Орлов Виктор;5ПМИ-001;4;07.01.2023
+Никитина Ирина;5ИНТ-002;3;06.01.2023
+
+SELECT=full_name,subject_name FROM=students.csv,subjects.csv,grade.csv WHERE=(grade='3' OR grade='4' OR grade='2')
+Иванов Иван;Матан
+Петров Олег;РПКС
+Петров Олег;Матан
+Петров Олег;История
+Игнатова Ольга;РПКС
+Калинина Дарья;РПКС
+Калинина Дарья;Матан
+Калинина Дарья;История
+Калинина Дарья;Английский
+Кузнецов Михаил;Матан
+Кузнецов Михаил;История
+Кузнецов Михаил;Английский
+Орлов Виктор;РПКС
+Орлов Виктор;Матан
+Орлов Виктор;История
+Орлов Виктор;Английский
+Никитина Ирина;РПКС
+Никитина Ирина;Матан
+Никитина Ирина;Английский
+
+SELECT=group_name,full_name,subject_name FROM=students.csv,groups.csv,subjects.csv,grade.csv WHERE=(grade='2')
+5ИНТ-002;Никитина Ирина;Английский
+
+SELECT=full_name,subject_name FROM=students.csv,subjects.csv,grade.csv WHERE=(grade='1')
+
+
+SELECT=full_name,subject_name FROM=students.csv,subjects.csv,grade.csv WHERE=(grade='1')
+
+
+SELECT=full_name,subject_name FROM=students.csv,subjects.csv,grade.csv WHERE=(grade='1')
+
+
+SELECT=group_name FROM=groups.csv GROUPBY=group_name
+5ИНТ-001
+5ИНТ-002
+5ПМИ-001
+
+SELECT=subject_name FROM=subjects.csv,grade.csv WHERE=(grade='5') GROUPBY=subject_name
+РПКС
+История
+Английский
+Матан
+
+SELECT=full_name FROM=students.csv
+Иванов Иван
+Петров Олег
+Игнатова Ольга
+Сидоров Николай
+Калинина Дарья
+Кузнецов Михаил
+Орлов Виктор
+Никитина Ирина
+
+SELECT=id,full_name FROM=students.csv
+0;Иванов Иван
+1;Петров Олег
+2;Игнатова Ольга
+3;Сидоров Николай
+4;Калинина Дарья
+5;Кузнецов Михаил
+6;Орлов Виктор
+7;Никитина Ирина
+
+SELECT=full_name,id FROM=students.csv
+Иванов Иван;0
+Петров Олег;1
+Игнатова Ольга;2
+Сидоров Николай;3
+Калинина Дарья;4
+Кузнецов Михаил;5
+Орлов Виктор;6
+Никитина Ирина;7
+
+SELECT=subject_name FROM=subjects.csv
+РПКС
+Матан
+История
+Английский
+
+SELECT=group_name,student_id FROM=groups.csv
+5ИНТ-001;5
+5ИНТ-002;2
+5ПМИ-001;4
+5ИНТ-001;0
+5ИНТ-001;1
+5ИНТ-002;7
+5ПМИ-001;3
+5ПМИ-001;6
+
