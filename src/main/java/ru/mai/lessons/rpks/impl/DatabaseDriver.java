@@ -12,7 +12,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.*;
 
 public class DatabaseDriver implements IDatabaseDriver {
-  public static final String PATH_CACHE_FILE = "src/test/resources/cache_file.txt";
   ConcurrentHashMap<String, List<String>> cacheMap = null;
   @Override
   public List<String> find(String studentsCsvFile, String groupsCsvFile, String subjectsCsvFile,
