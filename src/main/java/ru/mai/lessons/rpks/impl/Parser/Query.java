@@ -1,8 +1,11 @@
 package ru.mai.lessons.rpks.impl.Parser;
 
 import java.util.List;
-import ru.mai.lessons.rpks.impl.Parser.ConditionNode;
 
+import lombok.EqualsAndHashCode;
+
+
+@EqualsAndHashCode
 public class Query {
     public String originalInput;
     public List<String> selectColumns;

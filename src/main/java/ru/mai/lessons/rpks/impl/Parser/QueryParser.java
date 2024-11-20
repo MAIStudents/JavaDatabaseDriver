@@ -5,12 +5,10 @@ import ru.mai.lessons.rpks.exception.WrongCommandFormatException;
 import java.util.*;
 import java.util.regex.*;
 
-import ru.mai.lessons.rpks.impl.Parser.Query;
-import ru.mai.lessons.rpks.impl.Parser.ConditionNode;
-
 
 public class QueryParser {
     public static Query parse(String input) throws WrongCommandFormatException {
+
         Query query = new Query();
         query.originalInput = input;
         query.selectColumns = new ArrayList<>();
@@ -18,7 +16,6 @@ public class QueryParser {
         query.whereConditionNodes = new ArrayList<>();
         query.groupByColumn = null;
 
-        // Регулярные выражения для извлечения частей запроса
         String selectPattern = "SELECT=([^\\s]+)";
         String fromPattern = "FROM=([^\\s]+)";
         String wherePattern = "WHERE=\\(([^\\)]+)\\)";
@@ -31,7 +28,6 @@ public class QueryParser {
         if (whereMatch != null) {
             query.whereConditionNodes = parseConditions(whereMatch);
         }
-
         query.groupByColumn = extractSingleValue(input, groupByPattern);
 
         validateQuery(query);
@@ -59,32 +55,55 @@ public class QueryParser {
 
     private static List<ConditionNode> parseConditions(String conditions) {
         List<ConditionNode> output = new ArrayList<>();
-        Deque<String> operators = new ArrayDeque<>(); // Стек операторов
 
-        String regex = "(\\w+)=([^\\s]+)|\\b(AND|OR)\\b";
+        String regex = "(\\w+)=(['\"])(.*?)\\2|\\b(AND|OR)\\b|\\b(\\w+)=([^\\s]+)";
         Pattern pattern = Pattern.compile(regex);
         Matcher matcher = pattern.matcher(conditions);
 
         while (matcher.find()) {
-            if (matcher.group(1) != null) {
-                // Условие вида column=value
-                output.add(new ConditionNode(matcher.group(1), matcher.group(2)));
-            } else if (matcher.group(3) != null) {
-                // Оператор AND/OR
-                while (!operators.isEmpty() && precedence(operators.peek()) >= precedence(matcher.group(3))) {
-                    output.add(new ConditionNode(operators.pop()));
-                }
-                operators.push(matcher.group(3));
+            if (matcher.group(1) != null && matcher.group(3) != null) {
+                output.add(new ConditionNode(matcher.group(1), matcher.group(3)));
+            } else if (matcher.group(1) != null && matcher.group(6) != null) {
+                output.add(new ConditionNode(matcher.group(1), matcher.group(6)));
+            } else if (matcher.group(4) != null) {
+                output.add(new ConditionNode(matcher.group(4)));
             }
-        }
-
-        // Добавляем оставшиеся операторы из стека
-        while (!operators.isEmpty()) {
-            output.add(new ConditionNode(operators.pop()));
         }
 
         return output;
     }
+
+    public static ConditionNode buildConditionTree(List<ConditionNode> nodes) {
+        if (nodes.size() == 1) {
+            return nodes.get(0);
+        }
+
+        int index = findLowestPrecedenceOperator(nodes);
+
+        ConditionNode root = nodes.get(index);
+        root.left = buildConditionTree(nodes.subList(0, index));
+        root.right = buildConditionTree(nodes.subList(index + 1, nodes.size()));
+
+        return root;
+    }
+
+    private static int findLowestPrecedenceOperator(List<ConditionNode> nodes) {
+        int minPrecedence = Integer.MAX_VALUE;
+        int index = -1;
+
+        for (int i = 0; i < nodes.size(); i++) {
+            ConditionNode node = nodes.get(i);
+            if (node.type == ConditionNode.NodeType.OPERATOR) {
+                int precedence = precedence(node.operator);
+                if (precedence < minPrecedence) {
+                    minPrecedence = precedence;
+                    index = i;
+                }
+            }
+        }
+        return index;
+    }
+
 
     private static int precedence(String operator) {
         return switch (operator) {
@@ -94,23 +113,42 @@ public class QueryParser {
         };
     }
 
-
-
     private static void validateQuery(Query query) throws WrongCommandFormatException {
         if (query.selectColumns.isEmpty()) {
-            throw new WrongCommandFormatException("Параметр SELECT обязателен!");
+            throw new WrongCommandFormatException("Параметр SELECT обязателен");
         }
         if (query.fromFiles.isEmpty()) {
-            throw new WrongCommandFormatException("Параметр FROM обязателен!");
+            throw new WrongCommandFormatException("Параметр FROM обязателен");
         }
         if (query.groupByColumn != null && query.groupByColumn.isEmpty()) {
-            throw new WrongCommandFormatException("GROUPBY указан, но не содержит названия колонки!");
+            throw new WrongCommandFormatException("GROUPBY указан, но не содержит названия колонки");
         }
         if (query.groupByColumn == null && inputContainsGroupBy(query)) {
-            throw new WrongCommandFormatException("GROUPBY указан без значения!");
+            throw new WrongCommandFormatException("GROUPBY указан без значения");
+        }
+        if (query.originalInput.contains("==") || query.originalInput.contains("WHERE ")) {
+            throw new WrongCommandFormatException("Использование оператора '==' недопустимо. Используйте '='.");
         }
 
+        String wherePattern = "WHERE=\\(([^\\)]*)\\)";
+        String whereMatch = extractSingleValue(query.originalInput, wherePattern);
+
+        if (query.originalInput.contains("WHERE=()") ||
+                (query.originalInput.contains("WHERE") && !query.originalInput.contains("WHERE=("))) {
+            throw new WrongCommandFormatException("Пустое выражение WHERE (скобки без содержимого).");
+        }
+
+        if (whereMatch != null) {
+            if (whereMatch.trim().isEmpty()) {
+                throw new WrongCommandFormatException("В выражении WHERE отсутствует условие.");
+            }
+
+            if (!whereMatch.contains("=")) {
+                throw new WrongCommandFormatException("В выражении WHERE отсутствует оператор '='.");
+            }
+        }
     }
+
     private static boolean inputContainsGroupBy(Query query) {
         return query.originalInput.contains("GROUPBY");
     }

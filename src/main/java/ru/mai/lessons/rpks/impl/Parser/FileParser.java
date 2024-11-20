@@ -10,6 +10,7 @@ import java.util.Arrays;
 
 public class FileParser {
     private static final String PATH_PREFIX = "src/test/resources/";
+
     public static DataBase parseFile(String path) {
         DataBase db = new DataBase();
         db.name = path;
@@ -27,7 +28,8 @@ public class FileParser {
                 db.insertData(new Line(Arrays.asList(values)));
             }
         } catch (IOException e) {
-            System.err.println("Ошибка чтения файла: " + e.getMessage());
+            e.printStackTrace();
+            System.out.printf(e.getMessage());
         }
 
         return db;
