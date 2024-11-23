@@ -10,17 +10,8 @@ import ru.mai.lessons.rpks.impl.parsers.CommandParser;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-
 
 public class DatabaseDriver implements IDatabaseDriver {
-
-  private static final String GRADE_FILENAME = "grade.csv";
-  private static final String GROUPS_FILENAME = "groups.csv";
-  private static final String STUDENTS_FILENAME = "students.csv";
-  private static final String SUBJECTS_FILENAME = "subjects.csv";
 
   private static final List<String> fileList = List.of("grade.csv", "groups.csv", "students.csv", "subjects.csv");
 
