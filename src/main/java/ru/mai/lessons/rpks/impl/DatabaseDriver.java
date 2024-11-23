@@ -13,30 +13,30 @@ import java.util.List;
 
 public class DatabaseDriver implements IDatabaseDriver {
 
-  private static final List<String> fileList = List.of("grade.csv", "groups.csv", "students.csv", "subjects.csv");
+    private static final List<String> fileList = List.of("grade.csv", "groups.csv", "students.csv", "subjects.csv");
 
-  @Override
-  public List<String> find(String studentsCsvFile, String groupsCsvFile, String subjectsCsvFile,
-                           String gradeCsvFile, String command) throws WrongCommandFormatException, FieldNotFoundInTableException {
-    CommandParser parser = new CommandParser();
-    List<String> select = new ArrayList<>();
-    List<String> where = new ArrayList<>();
-    List<String> from = new ArrayList<>();
-    List<String> groupBy = new ArrayList<>();
-    parser.parseToLists(command, select, from, where, groupBy);
-    Command executing = new CommandBuilder()
-            .select(select)
-            .from(from)
-            .where(where)
-            .groupBy((!groupBy.isEmpty()) ? groupBy.get(0) : null)
-            .files(fileList)
-            .build();
-    try {
-      return executing.execute();
-    } catch (IOException e) {
-      throw new WrongCommandFormatException(e.getMessage());
-    } catch (FieldNotFoundInTableException e) {
-		throw new FieldNotFoundInTableException(e.getMessage());
-	}
-  }
+    @Override
+    public List<String> find(String studentsCsvFile, String groupsCsvFile, String subjectsCsvFile,
+                             String gradeCsvFile, String command) throws WrongCommandFormatException, FieldNotFoundInTableException {
+        CommandParser parser = new CommandParser();
+        List<String> select = new ArrayList<>();
+        List<String> where = new ArrayList<>();
+        List<String> from = new ArrayList<>();
+        List<String> groupBy = new ArrayList<>();
+        parser.parseToLists(command, select, from, where, groupBy);
+        Command executing = new CommandBuilder()
+                .select(select)
+                .from(from)
+                .where(where)
+                .groupBy((!groupBy.isEmpty()) ? groupBy.get(0) : null)
+                .files(fileList)
+                .build();
+        try {
+            return executing.execute();
+        } catch (IOException e) {
+            throw new WrongCommandFormatException(e.getMessage());
+        } catch (FieldNotFoundInTableException e) {
+            throw new FieldNotFoundInTableException(e.getMessage());
+        }
+    }
 }
