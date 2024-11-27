@@ -58,7 +58,6 @@ public class DatabaseDriver implements IDatabaseDriver {
 
     List<String> resultStrings = new ArrayList<>();
 
-
     if (result.isEmpty()) {
       resultStrings.add("");
     } else {
