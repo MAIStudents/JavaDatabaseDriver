@@ -49,7 +49,7 @@ public class ParseQuery {
     }
 
     public Optional<String> getGroupByClause() {
-        return Optional.ofNullable(queryTypeValue.get("GROUP BY"));
+        return Optional.ofNullable(queryTypeValue.get("GROUPBY"));
     }
 
 }

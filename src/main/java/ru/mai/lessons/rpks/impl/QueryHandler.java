@@ -10,6 +10,13 @@ import java.util.*;
 public class QueryHandler {
     private final Map<String, List<Map<String, String>>> loadedData = new HashMap<>();
 
+    private final Map<String, Map<String, String>> joinRules = Map.of(
+            "grade", Map.of("subject_id", "id"),
+            "students", Map.of("id", "student_id"),
+            "groups", Map.of("student_id", "student_id"),
+            "subjects", Map.of("id", "subject_id")
+    );
+
     public void loadDataFromFile(String fileName) throws IOException {
         String[] parts = fileName.split("[\\\\/]");
         String[] fileNameAndCSV = parts[parts.length - 1].split("\\.");
@@ -19,7 +26,7 @@ public class QueryHandler {
     }
 
     public List<Map<String, String>> handleQuery(String from, String select, String where, String orderBy) throws FieldNotFoundInTableException, WrongCommandFormatException {
-//        List<Map<String, String>> result = validateTableName(from);
+
         List<Map<String, String>> result = joinTables(from);
 
         if (where != null) {
@@ -57,25 +64,14 @@ public class QueryHandler {
     }
 
     private List<Map<String, String>> groupData(List<Map<String, String>> data, String groupBy) {
-        Map<String, List<Map<String, String>>> trueGroudedData = new HashMap<>();
+        Map<String, Map<String, String>> groupedData = new LinkedHashMap<>();
 
         for (Map<String, String> row : data) {
             String key = row.get(groupBy);
-            if (!trueGroudedData.containsKey(key)) {
-                trueGroudedData.put(key, new ArrayList<>());
-            }
-            trueGroudedData.get(key).add(row);
+            groupedData.putIfAbsent(key, row);
         }
 
-        List<Map<String, String>> result = new ArrayList<>();
-        for (String key : trueGroudedData.keySet()) {
-            List<Map<String, String>> rowsByKey = trueGroudedData.get(key);
-            if (!rowsByKey.isEmpty()) {
-                result.add(rowsByKey.get(0));
-            }
-        }
-
-        return result;
+        return new ArrayList<>(groupedData.values());
     }
 
     private List<Map<String, String>> filterDataByConditionWHERE(List<Map<String, String>> data, String where) {
@@ -116,10 +112,52 @@ public class QueryHandler {
         return result;
     }
 
+    public static void swapStringsByValue(String[] array, String value1, String value2) {
+
+        int index1 = -1;
+        int index2 = -1;
+        boolean canContinue = true;
+
+        for (int i = 0; i < array.length && canContinue; i++) {
+            if (array[i].equals(value1)) {
+                index1 = i;
+            } else if (array[i].equals(value2)) {
+                index2 = i;
+            }
+
+            if (index1 != -1 && index2 != -1) {
+                canContinue = false;
+            }
+        }
+
+        String temp = array[index1];
+        array[index1] = array[index2];
+        array[index2] = temp;
+    }
+
     private List<Map<String, String>> joinTables(String from) throws WrongCommandFormatException {
         String[] tableNames = from.split(",");
+
+        String isThereSubjects = null;
+        String isThereGrades = null;
+
+        for (String tableName : tableNames) {
+            tableName = tableName.trim();
+            if (tableName.equals("subjects.csv")) {
+                isThereSubjects = tableName;
+            }
+            else if (tableName.equals("grade.csv")) {
+                isThereGrades = tableName;
+            }
+        }
+
+        if (isThereSubjects != null && isThereGrades != null) {
+            swapStringsByValue(tableNames, isThereSubjects, isThereGrades);
+        }
+
         List<Map<String, String>> result = new ArrayList<>();
         List<List<Map<String, String>>> allTables = new ArrayList<>();
+        List<String> loadedTableNames = new ArrayList<>();
 
         for (String tableName : tableNames) {
             tableName = tableName.trim();
@@ -132,34 +170,62 @@ public class QueryHandler {
 
             if (loadedData.containsKey(alias)) {
                 allTables.add(loadedData.get(alias));
+                loadedTableNames.add(alias);
             } else {
-                throw new WrongCommandFormatException("!!!!");
+                throw new WrongCommandFormatException("Table not found: " + alias);
             }
         }
 
         if (!allTables.isEmpty()) {
             result = allTables.get(0);
-            for(int i = 1; i < allTables.size(); i++) {
-                result = innerJoin(result, allTables.get(i));
+            for (int i = 1; i < allTables.size(); i++) {
+                result = innerJoin(result, allTables.get(i), loadedTableNames.get(i - 1), loadedTableNames.get(i));
             }
         }
 
         return result;
     }
 
-    private List<Map<String, String>> innerJoin(List<Map<String, String>> leftist, List<Map<String, String>> rightist) {
+
+    private List<Map<String, String>> innerJoin(List<Map<String, String>> leftist, List<Map<String, String>> rightist, String leftTable, String rightTable) {
         List<Map<String, String>> result = new ArrayList<>();
 
-        for(Map<String, String> rowOfLeft : leftist) {
-            for(Map<String, String> rowOfRight : rightist) {
-                Map<String, String> joinedRow = new HashMap<>(rowOfLeft);
-                joinedRow.putAll(rowOfRight);
-                result.add(joinedRow);
+
+        Map<String, String> rules = joinRules.getOrDefault(leftTable, Map.of());
+
+        for (Map<String, String> rowOfLeft : leftist) {
+            for (Map<String, String> rowOfRight : rightist) {
+                boolean matches = true;
+
+
+                for (Map.Entry<String, String> rule : rules.entrySet()) {
+                    String leftField = rule.getKey();
+                    String rightField = rule.getValue();
+
+                    if (rowOfLeft.containsKey(leftField) && rowOfRight.containsKey(rightField)) {
+
+                        if (!rowOfLeft.get(leftField).equals(rowOfRight.get(rightField))) {
+                            matches = false;
+                        }
+                    }
+                }
+
+
+                if (matches) {
+                    Map<String, String> joinedRow = new HashMap<>(rowOfLeft);
+                    for (Map.Entry<String, String> entry : rowOfRight.entrySet()) {
+                        if (!joinedRow.containsKey(entry.getKey())) {
+                            joinedRow.put(entry.getKey(), entry.getValue());
+                        }
+                    }
+                    result.add(joinedRow);
+                }
             }
         }
 
         return result;
     }
+
 
     private List<Map<String, String>> validateTableName(String from) throws WrongCommandFormatException {
         String[] tableNames = from.split(",");

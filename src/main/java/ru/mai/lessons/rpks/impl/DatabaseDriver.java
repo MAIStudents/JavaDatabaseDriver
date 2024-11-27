@@ -9,7 +9,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 public class DatabaseDriver implements IDatabaseDriver {
   private final String pathToResources = "src/test/resources/";
@@ -49,8 +48,10 @@ public class DatabaseDriver implements IDatabaseDriver {
 
     List<String> resultStrings = new ArrayList<>();
 
+
     if (result.isEmpty()) {
       System.out.println("No results found.");
+      resultStrings.add("");
     } else {
       for (Map<String, String> row : result) {
         String rowString = String.join(";", row.values());
