@@ -23,7 +23,7 @@ public class ParseQuery {
                 if (queryValue.length != 2 || queryValue[1].trim().isEmpty()) {
                     throw new WrongCommandFormatException("Invalid query: " + arg);
                 }
-                queryTypeValue.put(queryValue[0].toUpperCase(), queryValue[1].trim());
+                queryTypeValue.put(queryValue[0].toUpperCase().trim(), queryValue[1].trim());
             }
 
 

@@ -55,7 +55,7 @@ public class QueryHandler {
                     selectedRows.put(column, row.get(column));
                 }
                 else {
-                    throw new FieldNotFoundInTableException("!!!!");
+                    throw new FieldNotFoundInTableException("wrong field!");
                 }
             }
             result.add(selectedRows);
@@ -223,28 +223,6 @@ public class QueryHandler {
             }
         }
 
-        return result;
-    }
-
-
-    private List<Map<String, String>> validateTableName(String from) throws WrongCommandFormatException {
-        String[] tableNames = from.split(",");
-        List<Map<String, String>> result = new ArrayList<>();
-
-        for (String tableName : tableNames) {
-            tableName = tableName.trim();
-            if (tableName.contains(" ")) {
-                throw new WrongCommandFormatException(tableName);
-            }
-
-            String[] parts = tableName.split("\\.");
-            tableName = parts[0].trim();
-            if (loadedData.containsKey(tableName)) {
-                result.addAll(loadedData.get(tableName));
-            } else {
-                throw new WrongCommandFormatException("You've want to get data from non existing table " + tableName + "!");
-            }
-        }
         return result;
     }
 }

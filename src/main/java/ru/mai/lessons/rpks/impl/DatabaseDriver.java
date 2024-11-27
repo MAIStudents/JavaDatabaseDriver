@@ -7,17 +7,21 @@ import ru.mai.lessons.rpks.exception.WrongCommandFormatException;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class DatabaseDriver implements IDatabaseDriver {
   private final String pathToResources = "src/test/resources/";
+
+  private final Map<Integer, List<String>> cacheForQuery = new HashMap<>();
+
   @Override
   public List<String> find(String studentsCsvFile, String groupsCsvFile, String subjectsCsvFile,
                            String gradeCsvFile, String command) throws WrongCommandFormatException, FieldNotFoundInTableException {
 
     if (command == null || command.isEmpty()) {
-      throw new FieldNotFoundInTableException("!!!");
+      throw new FieldNotFoundInTableException("You've entered empty command!");
     }
 
     ParseQuery parser = new ParseQuery(command);
@@ -44,13 +48,18 @@ public class DatabaseDriver implements IDatabaseDriver {
       groupBy = parser.getGroupByClause().get();
     }
 
+    AmaCashMachine cache = new AmaCashMachine(from, select, where, groupBy);
+
+    if (cacheForQuery.containsKey(cache.hashCode())) {
+      return cacheForQuery.get(cache.hashCode());
+    }
+
     List<Map<String, String>> result = handler.handleQuery(from, select, where, groupBy);
 
     List<String> resultStrings = new ArrayList<>();
 
 
     if (result.isEmpty()) {
-      System.out.println("No results found.");
       resultStrings.add("");
     } else {
       for (Map<String, String> row : result) {
@@ -59,9 +68,7 @@ public class DatabaseDriver implements IDatabaseDriver {
       }
     }
 
-    for (String line : resultStrings) {
-      System.out.println(line);
-    }
+    cacheForQuery.put(cache.hashCode(), resultStrings);
 
     return resultStrings;
 
