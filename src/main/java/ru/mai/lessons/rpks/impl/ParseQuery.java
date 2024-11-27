@@ -12,14 +12,21 @@ public class ParseQuery {
             throw new WrongCommandFormatException("incorrect query");
         }
 
-        String[] args = query.split("\\s+");
+        String[] args = query.split("(?=\\b(SELECT|FROM|WHERE=\\(|GROUPBY))");
 
         for (String arg : args) {
-            String[] queryValue = arg.split("=", 2);
-            if (queryValue.length != 2) {
-                throw new WrongCommandFormatException("Invalid query: " + arg);
+            if (!arg.trim().isEmpty()) {
+                if (!arg.contains("=") || arg.contains("==")) {
+                    throw new WrongCommandFormatException("Invalid query: missing '=' in " + arg);
+                }
+                String[] queryValue = arg.split("=", 2);
+                if (queryValue.length != 2 || queryValue[1].trim().isEmpty()) {
+                    throw new WrongCommandFormatException("Invalid query: " + arg);
+                }
+                queryTypeValue.put(queryValue[0].toUpperCase(), queryValue[1].trim());
             }
-            queryTypeValue.put(queryValue[0].toUpperCase(), queryValue[1]);
+
+
         }
     }
 

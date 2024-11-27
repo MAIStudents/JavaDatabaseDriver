@@ -1,27 +1,35 @@
 package ru.mai.lessons.rpks.impl;
 
+
 import ru.mai.lessons.rpks.IDatabaseDriver;
+import ru.mai.lessons.rpks.exception.FieldNotFoundInTableException;
 import ru.mai.lessons.rpks.exception.WrongCommandFormatException;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 public class DatabaseDriver implements IDatabaseDriver {
+  private final String pathToResources = "src/test/resources/";
   @Override
   public List<String> find(String studentsCsvFile, String groupsCsvFile, String subjectsCsvFile,
-                           String gradeCsvFile, String command) throws WrongCommandFormatException {
+                           String gradeCsvFile, String command) throws WrongCommandFormatException, FieldNotFoundInTableException {
+
+    if (command == null || command.isEmpty()) {
+      throw new FieldNotFoundInTableException("!!!");
+    }
 
     ParseQuery parser = new ParseQuery(command);
 
     QueryHandler handler = new QueryHandler();
 
     try {
-      handler.loadDataFromFile(studentsCsvFile);
-      handler.loadDataFromFile(groupsCsvFile);
-      handler.loadDataFromFile(subjectsCsvFile);
-      handler.loadDataFromFile(gradeCsvFile);
+      handler.loadDataFromFile(pathToResources + studentsCsvFile);
+      handler.loadDataFromFile(pathToResources + groupsCsvFile);
+      handler.loadDataFromFile(pathToResources + subjectsCsvFile);
+      handler.loadDataFromFile(pathToResources + gradeCsvFile);
     } catch (IOException e) {
       throw new IllegalArgumentException("You've entered wrong file!");
     }
@@ -30,36 +38,31 @@ public class DatabaseDriver implements IDatabaseDriver {
     String select = parser.getColumnsToSELECT();
     String where = null;
     if (parser.getWhereClause().isPresent()) {
-      where = String.valueOf(parser.getWhereClause());
+      where = parser.getWhereClause().get();
     }
     String groupBy = null;
     if (parser.getGroupByClause().isPresent()) {
-      groupBy = String.valueOf(parser.getGroupByClause());
+      groupBy = parser.getGroupByClause().get();
     }
 
     List<Map<String, String>> result = handler.handleQuery(from, select, where, groupBy);
 
+    List<String> resultStrings = new ArrayList<>();
+
     if (result.isEmpty()) {
       System.out.println("No results found.");
     } else {
-      System.out.println("Query Results:");
       for (Map<String, String> row : result) {
-        System.out.println(row.entrySet()
-                .stream()
-                .map(entry -> entry.getKey() + "=" + entry.getValue())
-                .collect(Collectors.joining(", ")));
+        String rowString = String.join(";", row.values());
+        resultStrings.add(rowString);
       }
     }
 
-    return null;
+    for (String line : resultStrings) {
+      System.out.println(line);
+    }
 
-
-
-
-
-
-
-
+    return resultStrings;
 
   }
 }
