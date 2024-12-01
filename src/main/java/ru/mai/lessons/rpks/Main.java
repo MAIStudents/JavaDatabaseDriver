@@ -9,7 +9,7 @@ import java.util.List;
 
 @Slf4j
 public class Main {
-  public static void main(String[] args)
+  public static void main(final String[] args)
       throws FieldNotFoundInTableException, WrongCommandFormatException {
     log.info("Start service DatabaseDriver");
     IDatabaseDriver service = new DatabaseDriver(); // ваша реализация service
@@ -18,8 +18,9 @@ public class Main {
     String subjectsCsvFile = args[2];
     String gradeCsvFile = args[3];
     String command = args[4];
-    List<String> results = service.find(studentsCsvFile, groupsCsvFile, subjectsCsvFile,
-                                        gradeCsvFile, command);
+    List<String> results = service.find(studentsCsvFile, groupsCsvFile,
+                                        subjectsCsvFile, gradeCsvFile,
+                                        command);
     log.info("Found data: {}", results);
     log.info("Terminate service DatabaseDriver");
   }

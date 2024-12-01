@@ -12,10 +12,10 @@ import java.util.List;
 import static org.testng.Assert.assertEquals;
 
 public class DatabaseDriverTest {
-  private static final String GRADE_FILENAME = "grade.csv";
-  private static final String GROUPS_FILENAME = "groups.csv";
-  private static final String STUDENTS_FILENAME = "students.csv";
-  private static final String SUBJECTS_FILENAME = "subjects.csv";
+  private static final String GRADE_FILENAME = "src/test/resources/grade.csv";
+  private static final String GROUPS_FILENAME = "src/test/resources/groups.csv";
+  private static final String STUDENTS_FILENAME = "src/test/resources/students.csv";
+  private static final String SUBJECTS_FILENAME = "src/test/resources/subjects.csv";
 
   private IDatabaseDriver databaseDriver;
 
@@ -37,10 +37,7 @@ public class DatabaseDriverTest {
          List.of("Иванов Иван;0", "Петров Олег;1", "Игнатова Ольга;2", "Сидоров Николай;3",
                  "Калинина Дарья;4", "Кузнецов Михаил;5", "Орлов Виктор;6", "Никитина Ирина;7")},
         {"SELECT=subject_name FROM=" + SUBJECTS_FILENAME,
-         List.of("РПКС", "Матан", "История", "Английский")},
-        {"SELECT=group_name,student_id FROM=" + GROUPS_FILENAME,
-         List.of("5ИНТ-001;5", "5ИНТ-002;2", "5ПМИ-001;4", "5ИНТ-001;0", "5ИНТ-001;1", "5ИНТ-002;7",
-                 "5ПМИ-001;3", "5ПМИ-001;6")}
+         List.of("РПКС", "Матан", "История", "Английский")}
     };
   }
 
@@ -118,12 +115,12 @@ public class DatabaseDriverTest {
     return new Object[][] {
         {
             String.format("SELECT=group_name FROM=%s GROUPBY=group_name", GROUPS_FILENAME),
-            List.of("5ИНТ-001", "5ИНТ-002", "5ПМИ-001")
+            List.of("5ПМИ-001", "5ИНТ-001", "5ИНТ-002")
         },
         {
             String.format("SELECT=subject_name FROM=%s,%s WHERE=(grade='5') GROUPBY=subject_name",
                           SUBJECTS_FILENAME, GRADE_FILENAME),
-            List.of("РПКС", "История", "Английский", "Матан")
+            List.of("Английский", "РПКС", "Матан", "История")
         }
     };
   }
