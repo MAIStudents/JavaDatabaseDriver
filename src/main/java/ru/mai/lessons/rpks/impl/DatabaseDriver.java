@@ -26,7 +26,7 @@ public final class DatabaseDriver implements IDatabaseDriver {
                            final String subjectsFile, final String gradeFile,
                            final String command)
       throws FieldNotFoundInTableException, WrongCommandFormatException {
-    validateCommand(command);
+    Checker.validateCommand(command);
 
     String normalizedCommand = normalizeCommand(command);
 
@@ -34,16 +34,16 @@ public final class DatabaseDriver implements IDatabaseDriver {
       return resultCache.get(normalizedCommand);
     }
 
-    final String fieldsPart = extractFieldsPart(command);
-    final String fromPart = extractFromPart(command);
-    final String wherePart = extractWherePart(command);
-    final String groupByPart = extractGroupByPart(command);
+    final String fieldsPart = Parser.extractFieldsPart(command);
+    final String fromPart = Parser.extractFromPart(command);
+    final String wherePart = Parser.extractWherePart(command);
+    final String groupByPart = Parser.extractGroupByPart(command);
 
     final List<String> selectedFields = Arrays.asList(fieldsPart.split(","));
     fromFiles = Arrays.asList(fromPart.split(","));
 
-    final Map<String, List<Map<String, String>>> data = loadData(fromFiles);
-    checkFieldsExistence(selectedFields, data);
+    final Map<String, List<Map<String, String>>> data = DataLoader.loadData(fromFiles);
+    Checker.checkFieldsExistence(selectedFields, data);
 
     List<Map<String, String>> filteredData = filterData(data, wherePart);
 
@@ -65,246 +65,6 @@ public final class DatabaseDriver implements IDatabaseDriver {
    */
   private String normalizeCommand(final String command) {
     return command.trim().replaceAll("\\s+", " ");
-  }
-
-  /**
-   * Проверяет корректность формата команды.
-   *
-   * @param command команда для проверки
-   * @throws WrongCommandFormatException если команда некорректна
-   */
-  private void validateCommand(final String command)
-      throws WrongCommandFormatException {
-    if (command == null || command.trim().isEmpty()) {
-      throw new WrongCommandFormatException("Неверный формат команды");
-    }
-  }
-
-  /**
-   * Извлекает часть полей из команды.
-   *
-   * @param command команда
-   * @return строка с полями
-   * @throws WrongCommandFormatException если формат команды некорректен
-   */
-  private String extractFieldsPart(final String command)
-      throws WrongCommandFormatException {
-    final int selectIndex = command.indexOf("SELECT=");
-    final int fromIndex = command.indexOf("FROM=");
-
-    if (selectIndex == -1 || fromIndex == -1) {
-      throw new WrongCommandFormatException("Неверный формат "
-          + "команды: отсутствует SELECT или FROM");
-    }
-
-    final String fieldsPart = command.substring(selectIndex
-        + "SELECT=".length(), fromIndex).trim();
-    if (fieldsPart.isEmpty()) {
-      throw new WrongCommandFormatException("Неверный формат "
-          + "команды: отсутствуют поля после SELECT");
-    }
-    return fieldsPart;
-  }
-
-  /**
-   * Извлекает часть FROM из команды.
-   *
-   * @param command команда
-   * @return строка с таблицами
-   * @throws WrongCommandFormatException если формат команды некорректен
-   */
-  private String extractFromPart(final String command)
-      throws WrongCommandFormatException {
-    final int fromIndex = command.indexOf("FROM=");
-    final int whereIndex = command.indexOf("WHERE=(");
-    final int groupByIndex = command.indexOf("GROUPBY=");
-
-    final int nextPartIndex = whereIndex != -1
-        ? whereIndex
-        : groupByIndex != -1 ? groupByIndex : command.length();
-    final String fromPart = command.substring(fromIndex
-        + "FROM=".length(), nextPartIndex).trim();
-    if (fromPart.isEmpty()) {
-      throw new WrongCommandFormatException("Неверный формат "
-          + "команды: отсутствуют таблицы после FROM");
-    }
-    return fromPart;
-  }
-
-  /**
-   * Извлекает часть WHERE из команды.
-   *
-   * @param command команда
-   * @return строка с условиями WHERE или null, если не указано
-   * @throws WrongCommandFormatException если формат команды некорректен
-   */
-  private String extractWherePart(final String command)
-      throws WrongCommandFormatException {
-    final int whereIndex = command.indexOf("WHERE=(");
-
-    if (whereIndex != -1) {
-      final int whereEndIndex = command.indexOf(")", whereIndex);
-      if (whereEndIndex == -1) {
-        throw new WrongCommandFormatException("Неверный формат команды: "
-            + "отсутствует закрывающая скобка для WHERE");
-      }
-      final String wherePart = command.substring(whereIndex
-          + "WHERE=(".length(), whereEndIndex).trim();
-      if (wherePart.isEmpty()) {
-        throw new WrongCommandFormatException("Неверный формат команды: "
-            + "отсутствует условие после WHERE");
-      }
-      return wherePart;
-    } else if (command.contains("WHERE")) {
-      throw new WrongCommandFormatException("Неверный формат команды: "
-          + "некорректная запись WHERE");
-    }
-    return null;
-  }
-
-  /**
-   * Извлекает часть GROUPBY из команды.
-   *
-   * @param command команда
-   * @return строка с полем GROUPBY или null, если не указано
-   * @throws WrongCommandFormatException если формат команды некорректен
-   */
-  private String extractGroupByPart(final String command)
-      throws WrongCommandFormatException {
-    final int groupByIndex = command.indexOf("GROUPBY=");
-
-    if (groupByIndex != -1) {
-      final String groupByPart
-          = command.substring(groupByIndex + "GROUPBY=".length()).trim();
-      if (groupByPart.isEmpty()) {
-        throw new WrongCommandFormatException("Неверный формат команды: "
-            + "отсутствует поле после GROUPBY");
-      }
-      return groupByPart;
-    } else if (command.contains("GROUPBY")) {
-      throw new WrongCommandFormatException("Неверный формат команды: "
-          + "некорректная запись GROUPBY");
-    }
-    return null;
-  }
-
-  /**
-   * Загружает данные из указанных файлов.
-   *
-   * @param files список файлов
-   * @return словарь с данными
-   * @throws WrongCommandFormatException если формат команды некорректен
-   */
-  private Map<String, List<Map<String, String>>>
-  loadData(final List<String> files)
-      throws WrongCommandFormatException {
-    final Map<String, List<Map<String, String>>> data = new HashMap<>();
-
-    for (final String file : files) {
-      if (file.contains(" ")) {
-        throw new WrongCommandFormatException("Неверный формат команды: "
-            + "лишний пробел");
-      }
-
-      final List<Map<String, String>> records = new ArrayList<>();
-
-      try (BufferedReader br = new BufferedReader(new FileReader(file))) {
-        final String headerLine = br.readLine();
-
-        if (headerLine != null) {
-          final String[] headers = headerLine.split(";");
-          String line;
-          while ((line = br.readLine()) != null) {
-            final String[] values = line.split(";");
-            final Map<String, String> record = new HashMap<>();
-            for (int i = 0; i < headers.length; i++) {
-              record.put(headers[i], values[i]);
-            }
-            records.add(record);
-          }
-        }
-      } catch (IOException e) {
-        e.printStackTrace();
-      }
-      data.put(file, records);
-    }
-    return data;
-  }
-
-  /**
-   * Проверяет существование указанных полей в загруженных данных.
-   *
-   * @param fields список полей
-   * @param data   карта с данными
-   * @throws FieldNotFoundInTableException если поле не найдено
-   */
-  private void checkFieldsExistence(final List<String> fields,
-                                    final Map<String,
-                                        List<Map<String, String>>> data)
-      throws FieldNotFoundInTableException {
-    final Set<String> availableFields = new HashSet<>();
-    for (final List<Map<String, String>> records : data.values()) {
-      if (!records.isEmpty()) {
-        availableFields.addAll(records.get(0).keySet());
-      }
-    }
-    for (final String field : fields) {
-      if (!availableFields.contains(field)) {
-        throw new FieldNotFoundInTableException("Поле "
-            + field + " не найдено в таблице");
-      }
-    }
-  }
-
-  /**
-   * Фильтрует данные на основе условий WHERE.
-   *
-   * @param data  словарь с данными
-   * @param where условия WHERE
-   * @return отфильтрованный список записей
-   * @throws WrongCommandFormatException если формат команды некорректен
-   */
-  private List<Map<String, String>> filterData(
-      final Map<String, List<Map<String, String>>> data,
-      final String where
-  )
-      throws WrongCommandFormatException {
-    final Set<String> linkedTablesName = new HashSet<>();
-    linkedTablesName.add(fromFiles.get(0).substring(19, fromFiles.get(0).length() - 5));
-
-    List<Map<String, String>> linkedTable
-        = new ArrayList<>(List.copyOf(data.get(fromFiles.get(0))));
-
-    final List<Map<String, String>> result = new ArrayList<>();
-
-    List<Integer> linkedTables = new ArrayList<>();
-
-    int maxIterations = data.size() * 3;
-
-    while (linkedTables.size() != data.size() - 1 && maxIterations != 0) {
-      for (int i = 1; i < data.size(); i++) {
-        if (!linkedTables.contains(i)) {
-          var mergeResult = mergeTables(linkedTablesName, linkedTable, fromFiles.get(i), data.get(fromFiles.get(i)));
-
-          if (mergeResult != null) {
-            linkedTable = mergeResult;
-            linkedTables.add(i);
-            linkedTablesName.add(fromFiles.get(i).substring(19, fromFiles.get(i).length() - 5));
-          }
-        }
-
-        maxIterations--;
-      }
-    }
-
-
-    for (var rows : linkedTable) {
-      if (where == null || evaluateCondition(rows, where)) {
-        result.add(rows);
-      }
-    }
-
-    return result;
   }
 
   /**
@@ -379,45 +139,54 @@ public final class DatabaseDriver implements IDatabaseDriver {
   }
 
   /**
-   * Оценивает условие для записи.
+   * Фильтрует данные на основе условий WHERE.
    *
-   * @param record    запись для оценки
-   * @param condition условие
-   * @return true, если условие выполнено, иначе false
+   * @param data  словарь с данными
+   * @param where условия WHERE
+   * @return отфильтрованный список записей
    * @throws WrongCommandFormatException если формат команды некорректен
    */
-  private boolean evaluateCondition(final Map<String, String> record,
-                                    final String condition)
+  private List<Map<String, String>> filterData(
+      final Map<String, List<Map<String, String>>> data,
+      final String where
+  )
       throws WrongCommandFormatException {
-    String trimmedCondition = condition.trim();
+    final Set<String> linkedTablesName = new HashSet<>();
+    linkedTablesName.add(fromFiles.get(0).substring(19, fromFiles.get(0).length() - 5));
 
-    final String[] orConditions = trimmedCondition.split("\\s+OR\\s+");
-    for (final String orCondition : orConditions) {
-      final String[] andConditions = orCondition.split("\\s+AND\\s+");
-      boolean allConditionsTrue = true;
+    List<Map<String, String>> linkedTable
+        = new ArrayList<>(List.copyOf(data.get(fromFiles.get(0))));
 
-      for (final String andCondition : andConditions) {
-        final String[] parts = andCondition.split("=");
-        if (parts.length != 2) {
-          throw new WrongCommandFormatException("Неверный формат команды: "
-              + "некорректное условие WHERE");
+    final List<Map<String, String>> result = new ArrayList<>();
+
+    List<Integer> linkedTables = new ArrayList<>();
+
+    int maxIterations = data.size() * 3;
+
+    while (linkedTables.size() != data.size() - 1 && maxIterations != 0) {
+      for (int i = 1; i < data.size(); i++) {
+        if (!linkedTables.contains(i)) {
+          var mergeResult = mergeTables(linkedTablesName, linkedTable, fromFiles.get(i), data.get(fromFiles.get(i)));
+
+          if (mergeResult != null) {
+            linkedTable = mergeResult;
+            linkedTables.add(i);
+            linkedTablesName.add(fromFiles.get(i).substring(19, fromFiles.get(i).length() - 5));
+          }
         }
 
-        final String field = parts[0].trim();
-        final String value = parts[1].trim().replace("'", "");
-
-        if (!record.containsKey(field) || !record.get(field).equals(value)) {
-          allConditionsTrue = false;
-          break;
-        }
-      }
-
-      if (allConditionsTrue) {
-        return true;
+        maxIterations--;
       }
     }
 
-    return false;
+
+    for (var rows : linkedTable) {
+      if (where == null || Checker.evaluateCondition(rows, where)) {
+        result.add(rows);
+      }
+    }
+
+    return result;
   }
 
   /**
