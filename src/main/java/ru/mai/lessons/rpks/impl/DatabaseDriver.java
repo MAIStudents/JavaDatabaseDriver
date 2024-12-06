@@ -7,6 +7,7 @@ import ru.mai.lessons.rpks.exception.WrongCommandFormatException;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,7 +37,12 @@ public class DatabaseDriver implements IDatabaseDriver {
     private final String gradeFilePath;
 
     public AnswerWithDataSource(List<String> answer, String studFilePath, long studModifyTime, String groupFilePath, long groupModifyTime, String subjFilePath, long subjModifyTime, String gradeFilePath, long gradeModifyTime) {
-      this.answer = answer;
+      if (answer.isEmpty()) {
+        this.answer = new ArrayList<>();
+        this.answer.add("");
+      } else {
+        this.answer = answer;
+      }
       this.studFilePath = studFilePath;
       this.studModifyTime = studModifyTime;
       this.groupFilePath = groupFilePath;

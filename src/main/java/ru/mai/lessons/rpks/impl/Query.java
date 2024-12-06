@@ -7,6 +7,7 @@ import ru.mai.lessons.rpks.exception.WrongCommandFormatException;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -23,7 +24,7 @@ public class Query {
     @Getter
     private final List<ConditionalExpressionData> whereExpression;
     @Getter
-    private final List<String> groupByColumns;
+    private final String groupByColumn;
 
     /**
      * 1 group - select list
@@ -32,7 +33,7 @@ public class Query {
      * 10 group - groupby list
      */
     private static final Pattern queryPattern =
-            Pattern.compile("^ *SELECT= *([a-zA-Z_]+( *, *[a-zA-Z_]+)*) +FROM= *([a-zA-Z_]+\\.csv( *, *[a-zA-Z_]+\\.csv)*)( +WHERE= *([a-zA-Z_]+ *= *'[a-zA-Z0-9_]+'( +(AND|OR) +[a-zA-Z_]+ *= *'[a-zA-Z0-9_]+')*))? *(GROUPBY= *([a-zA-Z_]+( *, *[a-zA-Z_]+)*))? *$");
+            Pattern.compile("^ *SELECT= *([a-zA-Z_]+( *, *[a-zA-Z_]+)*) +FROM= *([a-zA-Z_]+\\.csv( *, *[a-zA-Z_]+\\.csv)*)( +WHERE= *\\(([a-zA-Z_]+ *= *'[ а-яА-Яa-zA-Z0-9_]+'( +(AND|OR) +[a-zA-Z_]+ *= *'[ а-яА-Яa-zA-Z0-9_]+')*)\\))? *(GROUPBY= *([a-zA-Z_]+( *, *[a-zA-Z_]+)*))? *$");
 
     private static final int selectGroupId = 1;
     private static final int fromGroupId = 3;
@@ -41,11 +42,11 @@ public class Query {
 
     private static final String crutch_path = "src/test/resources/";
 
-    public Query(List<String> selectColumns, List<String> usedFiles, List<ConditionalExpressionData> whereExpression, List<String> groupByColumns) {
+    public Query(List<String> selectColumns, List<String> usedFiles, List<ConditionalExpressionData> whereExpression, String groupByColumn) {
         this.selectColumns = selectColumns;
         this.usedFiles = usedFiles;
         this.whereExpression = whereExpression;
-        this.groupByColumns = groupByColumns;
+        this.groupByColumn = groupByColumn;
     }
 
     @Override
@@ -53,26 +54,29 @@ public class Query {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Query query = (Query) o;
-        return Objects.equals(selectColumns, query.selectColumns) && Objects.equals(usedFiles, query.usedFiles) && Objects.equals(whereExpression, query.whereExpression) && Objects.equals(groupByColumns, query.groupByColumns);
+        return Objects.equals(selectColumns, query.selectColumns) && Objects.equals(usedFiles, query.usedFiles) && Objects.equals(whereExpression, query.whereExpression) && Objects.equals(groupByColumn, query.groupByColumn);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(selectColumns, usedFiles, whereExpression, groupByColumns);
+        return Objects.hash(selectColumns, usedFiles, whereExpression, groupByColumn);
     }
 
-    private static class ConditionalExpressionData {
+    public static class ConditionalExpressionData {
         @Getter
         private final String columnName;
         @Getter
         private final String dataValue;
-        @Getter
         private final boolean isAndWithPrevious;
 
         public ConditionalExpressionData(String columnName, String dataValue, boolean isAndWithPrevious) {
             this.columnName = columnName;
             this.dataValue = dataValue;
             this.isAndWithPrevious = isAndWithPrevious;
+        }
+
+        public boolean getIsAndWithPrevious() {
+            return isAndWithPrevious;
         }
     }
 
@@ -104,7 +108,7 @@ public class Query {
         while ((orFirstInd != -1 || andFirstInd != -1)) {
             int current = orFirstInd;
 
-            if (current == -1 || andFirstInd < current) {
+            if (current == -1 || (andFirstInd < current && andFirstInd != -1)) {
                 current = andFirstInd;
             }
 
@@ -144,20 +148,64 @@ public class Query {
 
         List<String> usedFiles = parseStringToList(matcher.group(fromGroupId));
 
-        for (String f : usedFiles) {
-            File n = new File(crutch_path + f);
+        for (int i = 0; i < usedFiles.size(); ++i) {
+            File n = new File(crutch_path + usedFiles.get(i));
 
-            f = n.getAbsolutePath();
+            usedFiles.set(i, n.getAbsolutePath());
         }
 
         List<String> selectColumns = parseStringToList(matcher.group(selectGroupId));
         List<ConditionalExpressionData> whereExpression = parseStringToExpr(matcher.group(whereGroupId));
         List<String> groupByColumns = parseStringToList(matcher.group(groupByGroupId));
 
-        return new Query(selectColumns, usedFiles, whereExpression, groupByColumns);
+        if (!groupByColumns.isEmpty()) {
+            for (String sc : selectColumns) {
+                if (!groupByColumns.contains(sc)) {
+                    throw new WrongCommandFormatException("If you use group by expression, you must select only grouped columns");
+                }
+            }
+        }
+
+        return new Query(selectColumns, usedFiles, whereExpression, groupByColumns.isEmpty() ? null : groupByColumns.get(0));
     }
 
-    public List<String> execute(File studFile, File groupFile, File subjFile, File gradeFile) throws FieldNotFoundInTableException {
+    private Database combineDBs(Database student, Database group, Database subj, Database grade) throws FieldNotFoundInTableException, WrongCommandFormatException {
+
+        Database res = null;
+
+        if (usedFiles.contains(student.getName()) && usedFiles.contains(group.getName())) {
+            res = student.innerJoinWith("id", group, "student_id");
+
+        } else if (usedFiles.contains(student.getName())) {
+            res = new Database(student);
+        } else if (usedFiles.contains(group.getName())) {
+            res = new Database(group);
+        }
+
+        if (usedFiles.contains(grade.getName()) && usedFiles.contains(student.getName()) && res != null) {
+            res = res.innerJoinWith("id", grade, "student_id");
+        } else if (usedFiles.contains(grade.getName()) && usedFiles.contains(group.getName()) && res != null) {
+            res = res.innerJoinWith("student_id", grade, "student_id");
+        } else if (usedFiles.contains(grade.getName())) {
+            res = new Database(grade);
+        }
+
+        if (usedFiles.contains(subj.getName()) && usedFiles.contains(grade.getName()) && res != null) {
+            res = res.innerJoinWith("subject_id", subj, "id");
+        } else if (usedFiles.contains(subj.getName()) && res == null) {
+            res = new Database(subj);
+        } else if (usedFiles.contains(subj.getName())) {
+            throw new WrongCommandFormatException("Tables were not found");
+        }
+
+        if (res == null) {
+            throw new WrongCommandFormatException("Tables were not found");
+        }
+
+        return res;
+    }
+
+    public List<String> execute(File studFile, File groupFile, File subjFile, File gradeFile) throws FieldNotFoundInTableException, WrongCommandFormatException {
         List<String> res = new ArrayList<>();
 
         try(BufferedReader studIn = new BufferedReader(new FileReader(studFile, StandardCharsets.UTF_8))) {
@@ -165,12 +213,20 @@ public class Query {
                 try (BufferedReader subjIn = new BufferedReader(new FileReader(subjFile, StandardCharsets.UTF_8))) {
                     try (BufferedReader gradeIn = new BufferedReader(new FileReader(gradeFile, StandardCharsets.UTF_8))) {
 
+                        Database student = new Database(studIn, studFile.getAbsolutePath());
+                        Database group = new Database(groupIn, groupFile.getAbsolutePath());
+                        Database subject = new Database(subjIn, subjFile.getAbsolutePath());
+                        Database grade = new Database(gradeIn, gradeFile.getAbsolutePath());
+
+                        Database resultDB = combineDBs(student, group, subject, grade);
+
+                        res = resultDB.answerToQuery(this);
 
                     }
                 }
             }
 
-        } catch (Exception e) {
+        } catch (IOException e) {
             System.out.println(e.getMessage());
             e.printStackTrace();
         }
