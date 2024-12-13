@@ -13,11 +13,18 @@ public class Main {
       throws FieldNotFoundInTableException, WrongCommandFormatException {
     log.info("Start service DatabaseDriver");
     IDatabaseDriver service = new DatabaseDriver(); // ваша реализация service
-    String studentsCsvFile = args[0];
-    String groupsCsvFile = args[1];
-    String subjectsCsvFile = args[2];
-    String gradeCsvFile = args[3];
-    String command = args[4];
+//    String studentsCsvFile = args[0];
+//    String groupsCsvFile = args[1];
+//    String subjectsCsvFile = args[2];
+//    String gradeCsvFile = args[3];
+//    String command = args[4];
+//
+    String studentsCsvFile = "students.csv";
+    String groupsCsvFile = "groups.csv";
+    String subjectsCsvFile = "subjects.csv";
+    String gradeCsvFile = "grade.csv";
+    String command = "SELECT=full_name,group_name FROM=students.csv,groups.csv WHERE=(id=2 OR id=3)";
+
     List<String> results = service.find(studentsCsvFile, groupsCsvFile, subjectsCsvFile,
                                         gradeCsvFile, command);
     log.info("Found data: {}", results);
