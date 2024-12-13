@@ -4,9 +4,6 @@ import ru.mai.lessons.rpks.IDatabaseDriver;
 import ru.mai.lessons.rpks.exception.FieldNotFoundInTableException;
 import ru.mai.lessons.rpks.exception.WrongCommandFormatException;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -14,12 +11,17 @@ public final class DatabaseDriver implements IDatabaseDriver {
   /**
    * Словарь, который содержит в качестве ключа - запрос, значения - результат
    */
-  private final Map<String, List<String>> resultCache = new HashMap<>();
+  private final Map<String, List<String>> RESULT_CACHE = new HashMap<>();
+
+  /**
+   * Словарь, который содержит в качестве ключа - запрос, значения - результат
+   */
+  private final String PREFIX = "src/test/resources/";
 
   /**
    * Список, который содержит имена переданных файлов данных
    */
-  private List<String> fromFiles = new ArrayList<>();
+  private List<String> FROM_FILES = new ArrayList<>();
 
   @Override
   public List<String> find(final String studentsFile, final String groupsFile,
@@ -30,8 +32,8 @@ public final class DatabaseDriver implements IDatabaseDriver {
 
     String normalizedCommand = normalizeCommand(command);
 
-    if (resultCache.containsKey(normalizedCommand)) {
-      return resultCache.get(normalizedCommand);
+    if (RESULT_CACHE.containsKey(normalizedCommand)) {
+      return RESULT_CACHE.get(normalizedCommand);
     }
 
     final String fieldsPart = Parser.extractFieldsPart(command);
@@ -40,9 +42,11 @@ public final class DatabaseDriver implements IDatabaseDriver {
     final String groupByPart = Parser.extractGroupByPart(command);
 
     final List<String> selectedFields = Arrays.asList(fieldsPart.split(","));
-    fromFiles = Arrays.asList(fromPart.split(","));
+    FROM_FILES = Arrays.stream(fromPart.split(","))
+        .map(PREFIX::concat)
+        .collect(Collectors.toList());
 
-    final Map<String, List<Map<String, String>>> data = DataLoader.loadData(fromFiles);
+    final Map<String, List<Map<String, String>>> data = DataLoader.loadData(FROM_FILES);
     Checker.checkFieldsExistence(selectedFields, data);
 
     List<Map<String, String>> filteredData = filterData(data, wherePart);
@@ -52,7 +56,7 @@ public final class DatabaseDriver implements IDatabaseDriver {
     }
 
     final List<String> result = formatResult(filteredData, selectedFields);
-    resultCache.put(normalizedCommand, result);
+    RESULT_CACHE.put(normalizedCommand, result);
 
     return result.isEmpty() ? Collections.singletonList("") : result;
   }
@@ -152,10 +156,10 @@ public final class DatabaseDriver implements IDatabaseDriver {
   )
       throws WrongCommandFormatException {
     final Set<String> linkedTablesName = new HashSet<>();
-    linkedTablesName.add(fromFiles.get(0).substring(19, fromFiles.get(0).length() - 5));
+    linkedTablesName.add(FROM_FILES.get(0).substring(19, FROM_FILES.get(0).length() - 5));
 
     List<Map<String, String>> linkedTable
-        = new ArrayList<>(List.copyOf(data.get(fromFiles.get(0))));
+        = new ArrayList<>(List.copyOf(data.get(FROM_FILES.get(0))));
 
     final List<Map<String, String>> result = new ArrayList<>();
 
@@ -166,12 +170,12 @@ public final class DatabaseDriver implements IDatabaseDriver {
     while (linkedTables.size() != data.size() - 1 && maxIterations != 0) {
       for (int i = 1; i < data.size(); i++) {
         if (!linkedTables.contains(i)) {
-          var mergeResult = mergeTables(linkedTablesName, linkedTable, fromFiles.get(i), data.get(fromFiles.get(i)));
+          var mergeResult = mergeTables(linkedTablesName, linkedTable, FROM_FILES.get(i), data.get(FROM_FILES.get(i)));
 
           if (mergeResult != null) {
             linkedTable = mergeResult;
             linkedTables.add(i);
-            linkedTablesName.add(fromFiles.get(i).substring(19, fromFiles.get(i).length() - 5));
+            linkedTablesName.add(FROM_FILES.get(i).substring(19, FROM_FILES.get(i).length() - 5));
           }
         }
 
