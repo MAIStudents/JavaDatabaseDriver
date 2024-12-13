@@ -6,7 +6,6 @@ import ru.mai.lessons.rpks.exception.WrongCommandFormatException;
 import ru.mai.lessons.rpks.impl.DatabaseDriver;
 
 import java.util.List;
-
 @Slf4j
 public class Main {
   public static void main(String[] args)
