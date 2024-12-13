@@ -11,11 +11,11 @@ import java.util.List;
 
 import static org.testng.Assert.assertEquals;
 
-public final class DatabaseDriverTest {
-  private static final String GRADE_FILENAME = "src/test/resources/grade.csv";
-  private static final String GROUPS_FILENAME = "src/test/resources/groups.csv";
-  private static final String STUDENTS_FILENAME = "src/test/resources/students.csv";
-  private static final String SUBJECTS_FILENAME = "src/test/resources/subjects.csv";
+public class DatabaseDriverTest {
+  private static final String GRADE_FILENAME = "grade.csv";
+  private static final String GROUPS_FILENAME = "groups.csv";
+  private static final String STUDENTS_FILENAME = "students.csv";
+  private static final String SUBJECTS_FILENAME = "subjects.csv";
 
   private IDatabaseDriver databaseDriver;
 
@@ -26,7 +26,7 @@ public final class DatabaseDriverTest {
 
   @DataProvider(name = "selectFromCases")
   private Object[][] getSelectFromCase() {
-    return new Object[][]{
+    return new Object[][] {
         {"SELECT=full_name FROM=" + STUDENTS_FILENAME,
             List.of("Иванов Иван", "Петров Олег", "Игнатова Ольга", "Сидоров Николай",
                 "Калинина Дарья", "Кузнецов Михаил", "Орлов Виктор", "Никитина Ирина")},
@@ -58,7 +58,7 @@ public final class DatabaseDriverTest {
 
   @DataProvider(name = "selectFromWhereCases")
   private Object[][] getSelectFromWhereCase() {
-    return new Object[][]{
+    return new Object[][] {
         {
             String.format(
                 "SELECT=group_name,grade,date FROM=%s,%s,%s,%s WHERE=(full_name='%s' AND subject_name='%s')",
@@ -115,7 +115,7 @@ public final class DatabaseDriverTest {
 
   @DataProvider(name = "selectFromWhereGroupByCases")
   private Object[][] getSelectFromWhereGroupByCase() {
-    return new Object[][]{
+    return new Object[][] {
         {
             String.format("SELECT=group_name FROM=%s GROUPBY=group_name", GROUPS_FILENAME),
             List.of("5ИНТ-001", "5ИНТ-002", "5ПМИ-001")
@@ -156,7 +156,7 @@ public final class DatabaseDriverTest {
 
   @DataProvider(name = "wrongFormatCommandCases")
   private Object[][] getWrongFormatCommandCase() {
-    return new Object[][]{
+    return new Object[][] {
         {"SELECT group_name FROM=" + STUDENTS_FILENAME},
         {"SELECT=group_name FROM " + STUDENTS_FILENAME},
         {"SELECT=group_name"},
